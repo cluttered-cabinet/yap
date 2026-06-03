@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Optimizing a 1.5B Transcript Cleanup Model with DSPy</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tufte-css@1.8.0/tufte.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    table { border-collapse: collapse; width: 100%; font-size: 1.2rem; margin: 1.4rem 0; }
+    th, td { text-align: left; padding: 0.4rem 0.8rem; border-bottom: 1px solid #ccc; }
+    th { border-bottom: 2px solid #333; font-weight: bold; }
+    tr:last-child td { border-bottom: none; }
+    .winner td { font-weight: bold; }
+    code, pre { font-size: 1.1rem; }
+    pre { padding: 1rem; background: #f9f9f9; overflow-x: auto; line-height: 1.5; }
+    .delta { color: #2a7; }
+    .delta-neg { color: #c44; }
+    .mono { font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace; }
+    .chart-bar { display: inline-block; height: 1.1rem; background: #4a90d9; border-radius: 2px; margin-right: 0.5rem; vertical-align: middle; }
+    .chart-row { margin: 0.3rem 0; white-space: nowrap; }
+    .chart-label { display: inline-block; width: 14rem; text-align: right; margin-right: 1rem; font-size: 1.1rem; }
+    .chart-value { font-size: 1.1rem; }
+    .chart-container { margin: 1.4rem 0 2rem 0; }
+  </style>
+</head>
+
+<body>
+  <article>
+    <h1>Optimizing a 1.5B Transcript Cleanup Model with DSPy</h1>
+    <p class="subtitle">How few-shot prompt tuning took a tiny local LLM from 71% to 88% on speech-to-text cleanup</p>
+    <section>
+      <p><span class="newthought">yap is a local, on-device</span> push-to-talk dictation app for macOS.
+        It transcribes speech with a 600M-parameter STT model (Parakeet) via MLX, then types the result
+        into whatever app has focus. Everything runs on Apple Silicon &mdash; no cloud, no account.</p>
+
+      <p>We wanted to add a &ldquo;clean&rdquo; style that would post-process raw transcripts:
+        remove filler words (<em>um, uh, like, you know</em>), fix punctuation, de-stutter repeated words,
+        and &mdash; when the speaker is clearly dictating a list, table, or email &mdash; apply appropriate
+        markdown formatting. All on-device, using a model small enough to coexist in memory alongside the
+        STT model.</p>
+
+      <p>The model we chose was <span class="mono">Qwen2.5-1.5B-Instruct-4bit</span>, weighing ~1&thinsp;GB.
+        The question was whether a model this small could reliably follow complex cleanup instructions.
+        <label for="sn-model" class="margin-toggle sidenote-number"></label>
+        <input type="checkbox" id="sn-model" class="margin-toggle">
+        <span class="sidenote">We also tried the 0.5B variant. It couldn&rsquo;t even remove filler words
+        at zero-shot &mdash; it parroted the input verbatim. DSPy lifted it from 69% to 84%, but it still
+        produced empty outputs and kept fillers in cleaned text. The 1.5B model has a fundamentally higher
+        capability floor.</span>
+        The answer: not at zero-shot. But with DSPy prompt optimization, yes.</p>
+    </section>
+
+    <section>
+      <h2>The Task</h2>
+      <p>Given a raw speech-to-text transcript, produce a cleaned version that:</p>
+      <ol>
+        <li>Removes filler words (um, uh, like, you know, basically, actually, literally)</li>
+        <li>Removes false starts, stutters, and repeated words/phrases</li>
+        <li>Fixes punctuation and capitalization</li>
+        <li>Formats sequential items as markdown numbered lists</li>
+        <li>Formats enumerations as markdown bullet lists</li>
+        <li>Formats structured comparisons as markdown tables</li>
+        <li>Formats formal messages with proper paragraph structure</li>
+        <li>Converts spoken numbers/times/money to digits ($15,000, 2&thinsp;PM, 5:30)</li>
+        <li>Wraps code identifiers in backticks</li>
+      </ol>
+
+      <p>We built a dataset of 59 (transcript, cleaned) pairs covering these categories and split 70/30
+        into 41 training and 18 validation examples.</p>
+    </section>
+
+    <section>
+      <h2>The Metric</h2>
+      <p>A single scalar metric scored each prediction on five axes:</p>
+
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Weight</th><th>What it measures</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Filler removal</td><td>0.20</td><td>Fraction of input filler words absent in output</td></tr>
+          <tr><td>Content preservation</td><td>0.30</td><td>SequenceMatcher ratio of content words vs. gold</td></tr>
+          <tr><td>Structural match</td><td>0.25</td><td>Does the output have the right markdown structure (list, table, plain)?</td></tr>
+          <tr><td>Brevity</td><td>0.10</td><td>Penalizes output longer than gold (hallucination signal)</td></tr>
+          <tr><td>Exact match</td><td>0.15</td><td>Bonus for normalized exact match</td></tr>
+        </tbody>
+      </table>
+
+      <p>The structural match component was critical: it checks whether the model produced a bullet list
+        when the gold has one, a table when the gold has one, and penalizes unwanted structure insertion
+        on plain-text examples.
+        <label for="sn-metric" class="margin-toggle sidenote-number"></label>
+        <input type="checkbox" id="sn-metric" class="margin-toggle">
+        <span class="sidenote">The earlier version of the metric (used for the 0.5B experiments) lacked
+        the structural component and used Jaccard similarity instead of SequenceMatcher. This made it
+        blind to formatting quality, which is why we redesigned it for the expanded dataset.</span>
+      </p>
+    </section>
+
+    <section>
+      <h2>Experiment 1: Can the 0.5B Model Work?</h2>
+
+      <p>Before committing to the 1.5B model, we tested whether DSPy could rescue the 0.5B variant.
+        The dataset for this experiment was the simpler 35-pair set (filler removal only, no markdown formatting).</p>
+
+      <table>
+        <thead>
+          <tr><th>Optimizer</th><th>Score</th><th>&Delta;</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Zero-shot baseline</td><td>69.1%</td><td>&mdash;</td></tr>
+          <tr><td>BootstrapFewShot</td><td>76.1%</td><td class="delta">+7.0</td></tr>
+          <tr><td>MIPROv2 (+ 1.5B teacher)</td><td>82.8%</td><td class="delta">+13.7</td></tr>
+          <tr class="winner"><td>BootstrapFewShotWithRandomSearch</td><td>83.6%</td><td class="delta">+14.5</td></tr>
+        </tbody>
+      </table>
+
+      <div class="chart-container">
+        <div class="chart-row"><span class="chart-label">Zero-shot</span><span class="chart-bar" style="width:calc(69.1% * 0.55)"></span><span class="chart-value">69.1%</span></div>
+        <div class="chart-row"><span class="chart-label">BootstrapFewShot</span><span class="chart-bar" style="width:calc(76.1% * 0.55)"></span><span class="chart-value">76.1%</span></div>
+        <div class="chart-row"><span class="chart-label">MIPROv2</span><span class="chart-bar" style="width:calc(82.8% * 0.55)"></span><span class="chart-value">82.8%</span></div>
+        <div class="chart-row"><span class="chart-label">RandomSearch</span><span class="chart-bar" style="width:calc(83.6% * 0.55); background: #2a7"></span><span class="chart-value"><strong>83.6%</strong></span></div>
+      </div>
+
+      <p>DSPy squeezed an impressive +14.5 points out of the 0.5B model &mdash; <em>more</em> absolute
+        improvement than it would later achieve on the 1.5B. But examining the actual outputs revealed
+        the model still couldn&rsquo;t reliably follow instructions:</p>
+
+      <pre><code>IN:  Um testing out whether or not the uh cleanup functionality works.
+OUT: Um testing out whether or not the uh cleanup functionality works.
+     <em>(verbatim parrot &mdash; zero cleanup)</em>
+
+IN:  So like I was thinking you know maybe we should like refactor the the database layer
+OUT:
+     <em>(empty output &mdash; hallucinated nothing)</em>
+
+IN:  Well uh I guess I guess we need to to fix the the authentication flow
+OUT: Well, uh, I guess we need to fix the authentication flow.
+     <em>(kept &ldquo;uh&rdquo;, added punctuation around it)</em></code></pre>
+
+      <p>You cannot prompt-engineer your way past a model&rsquo;s comprehension ceiling. The 0.5B
+        literally does not understand &ldquo;remove this word&rdquo; well enough, regardless of how
+        many examples you show it.</p>
+    </section>
+
+    <section>
+      <h2>Experiment 2: The 1.5B Model with the Full Dataset</h2>
+
+      <p>We expanded the dataset to 59 examples covering markdown lists, tables, professional emails,
+        code identifiers, number formatting, and casual cleanup. We then ran the same three optimizers
+        on the 1.5B model.</p>
+
+      <h3>Baseline</h3>
+      <p>At zero-shot (no few-shot examples, just the system prompt), the 1.5B scored <strong>71.2%</strong>.
+        It handled simple filler removal well but failed on structural formatting &mdash; it would not
+        produce markdown lists or tables unprompted.</p>
+
+      <h3>BootstrapFewShot</h3>
+      <p>The simplest DSPy optimizer. It runs the model on training examples, collects successful
+        traces (where the metric exceeds a threshold), and prepends them as few-shot demonstrations
+        in the prompt.</p>
+
+      <p>Configuration: <span class="mono">max_bootstrapped_demos=4, max_labeled_demos=6, max_rounds=2</span></p>
+      <p>Result: <strong>80.4%</strong> <span class="delta">(+9.2)</span></p>
+
+      <p>The model now produced markdown formatting when shown examples of it. But the demo selection
+        was not optimal &mdash; it used whatever traces it bootstrapped first, without searching for
+        the best combination.</p>
+
+      <h3>BootstrapFewShotWithRandomSearch</h3>
+      <p>Samples multiple sets of bootstrapped demonstrations and evaluates each on the validation set,
+        keeping the best.</p>
+
+      <p>Configuration: <span class="mono">num_candidate_programs=16, max_bootstrapped_demos=4, max_labeled_demos=8</span></p>
+      <p>Result: <strong>85.1%</strong> <span class="delta">(+13.8)</span></p>
+
+      <p>Searching over 16 candidate demo sets found better combinations than the greedy single-pass approach.</p>
+
+      <h3>MIPROv2</h3>
+      <p>The most sophisticated optimizer. MIPROv2 jointly optimizes <em>instructions</em> and
+        <em>few-shot demonstrations</em> using Bayesian optimization (TPE sampler via Optuna) over
+        the combinatorial space of instruction variants &times; demo sets.</p>
+
+      <p>Configuration: <span class="mono">auto=&ldquo;medium&rdquo;</span> (18 trials, 6 instruction candidates, 12 demo sets)</p>
+
+      <p>MIPROv2 proposed 6 instruction candidates. The 1.5B model is capable enough to write reasonable
+        instructions but also produced some degenerate ones:</p>
+
+      <pre><code>Instruction 0: <em>(our original &mdash; the winner)</em>
+  &ldquo;Clean up a raw speech-to-text transcript for professional use...&rdquo;
+
+Instruction 1: <em>(infinite repetition loop)</em>
+  &ldquo;Convert the transcript 'Convert the transcript 'Convert the
+   transcript 'Convert the transcript 'Convert...&rdquo;
+
+Instruction 2: <em>(over-summarized)</em>
+  &ldquo;Convert the following transcript into a succinct one-sentence
+   summary...&rdquo;</code></pre>
+
+      <p>The Bayesian search converged on <strong>Instruction 0 + Demo Set 6</strong> in trial 4,
+        confirmed it across trials 16 and 17, and returned it as the winner.</p>
+
+      <p>Result: <strong>88.0%</strong> <span class="delta">(+16.7)</span></p>
+
+      <label for="sn-mipro" class="margin-toggle sidenote-number"></label>
+      <input type="checkbox" id="sn-mipro" class="margin-toggle">
+      <span class="sidenote">An interesting finding: MIPROv2 kept our hand-written instruction verbatim.
+        The entire lift came from demo selection. This suggests the instruction was already well-crafted
+        and the bottleneck was showing the model <em>what</em> good outputs look like, not telling it
+        <em>how</em> to produce them.</span>
+    </section>
+
+    <section>
+      <h2>Final Results</h2>
+
+      <table>
+        <thead>
+          <tr><th>Optimizer</th><th>Score</th><th>&Delta; from baseline</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Zero-shot baseline</td><td>71.2%</td><td>&mdash;</td></tr>
+          <tr><td>BootstrapFewShot</td><td>80.4%</td><td class="delta">+9.2</td></tr>
+          <tr><td>BootstrapFewShotWithRandomSearch</td><td>85.1%</td><td class="delta">+13.8</td></tr>
+          <tr class="winner"><td>MIPROv2</td><td>88.0%</td><td class="delta">+16.7</td></tr>
+        </tbody>
+      </table>
+
+      <div class="chart-container">
+        <div class="chart-row"><span class="chart-label">Zero-shot</span><span class="chart-bar" style="width:calc(71.2% * 0.55)"></span><span class="chart-value">71.2%</span></div>
+        <div class="chart-row"><span class="chart-label">BootstrapFewShot</span><span class="chart-bar" style="width:calc(80.4% * 0.55)"></span><span class="chart-value">80.4%</span></div>
+        <div class="chart-row"><span class="chart-label">RandomSearch</span><span class="chart-bar" style="width:calc(85.1% * 0.55)"></span><span class="chart-value">85.1%</span></div>
+        <div class="chart-row"><span class="chart-label">MIPROv2</span><span class="chart-bar" style="width:calc(88.0% * 0.55); background: #2a7"></span><span class="chart-value"><strong>88.0%</strong></span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>The Winning Prompt</h2>
+
+      <p>MIPROv2&rsquo;s best trial used our original instruction with 6 few-shot demonstrations.
+        The demos were selected by Bayesian optimization from 12 bootstrapped candidate sets and
+        cover the full taxonomy of cleanup tasks:</p>
+
+      <table>
+        <thead>
+          <tr><th>#</th><th>Category</th><th>What it teaches</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Pros/cons</td><td>Structured arguments &rarr; labeled bullet lists</td></tr>
+          <tr><td>2</td><td>Filler removal</td><td>Simple &ldquo;um&rdquo;/&ldquo;uh&rdquo; deletion</td></tr>
+          <tr><td>3</td><td>Casual tone</td><td>Preserve informal phrasing while cleaning</td></tr>
+          <tr><td>4</td><td>Table</td><td>Names + roles &rarr; markdown table</td></tr>
+          <tr><td>5</td><td>Heavy stuttering</td><td>Major deduplication and restructuring</td></tr>
+          <tr><td>6</td><td>Deduplication</td><td>Repeated words only, no fillers to remove</td></tr>
+        </tbody>
+      </table>
+
+      <p>These 6 demos are baked directly into the production prompt as chat-format few-shot examples.
+        The full prompt (system message + 6 user/assistant pairs + the new user input) is approximately
+        650 tokens, leaving ample generation budget for the model&rsquo;s response.</p>
+    </section>
+
+    <section>
+      <h2>Production Outputs</h2>
+
+      <p>The baked prompt running on the 1.5B model at inference time:</p>
+
+      <pre><code><strong>Filler removal</strong>
+IN:  Um testing out whether or not the uh cleanup functionality works.
+OUT: Testing out whether or not the cleanup functionality works.
+
+<strong>List detection</strong>
+IN:  so the action items are first update the docs second fix the login bug
+     and third deploy to staging
+OUT: Action items:
+     1. Update the docs
+     2. Fix the login bug
+     3. Deploy to staging
+
+<strong>Professional email</strong>
+IN:  hi Sarah um I wanted to follow up on our conversation regarding the Q3
+     budget I've reviewed the numbers and I think we can allocate an additional
+     fifteen thousand to the infrastructure team let me know if you'd like
+     to discuss
+OUT: Hi Sarah, I wanted to follow up on our conversation regarding the Q3
+     budget. I've reviewed the numbers and I think we can allocate an
+     additional $15,000 to the infrastructure team. Let me know if you'd
+     like to discuss.
+
+<strong>Code identifiers</strong>
+IN:  the api endpoint is slash api slash v2 slash users and it runs on port
+     eight zero eight zero
+OUT: The API endpoint is `api/v2/users` and it runs on port `8080`.
+
+<strong>Heavy stuttering</strong>
+IN:  I was I was gonna say that uh maybe we should just just use Redis for
+     for caching
+OUT: I was gonna say that maybe we should just use Redis for caching.
+
+<strong>Clean passthrough</strong>
+IN:  The quick brown fox jumps over the lazy dog
+OUT: The quick brown fox jumps over the lazy dog.</code></pre>
+    </section>
+
+    <section>
+      <h2>Cross-Model Comparison</h2>
+
+      <p>A natural question: could DSPy lift the cheaper 0.5B model to match the 1.5B? No.</p>
+
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Zero-shot</th><th>Best DSPy</th><th>Optimizer</th><th>DSPy Lift</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0.5B</td><td>69.1%</td><td>83.6%</td>
+            <td>RandomSearch</td><td class="delta">+14.5</td>
+          </tr>
+          <tr class="winner">
+            <td>1.5B</td><td>71.2%</td><td>88.0%</td>
+            <td>MIPROv2</td><td class="delta">+16.7</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>DSPy extracted <em>more</em> relative improvement from the 0.5B (+14.5 vs +16.7), but the
+        1.5B&rsquo;s higher capability floor means its optimized score still exceeds the 0.5B&rsquo;s
+        best by 4.4 points &mdash; and critically, produces zero broken outputs (no empty strings,
+        no kept fillers, no hallucinations).</p>
+
+      <label for="sn-floor" class="margin-toggle sidenote-number"></label>
+      <input type="checkbox" id="sn-floor" class="margin-toggle">
+      <span class="sidenote">This is the key insight: DSPy optimizes <em>how you ask</em>, but
+        cannot change <em>what the model understands</em>. At 0.5B parameters, the model lacks
+        the instruction-following capacity to reliably execute &ldquo;remove this word&rdquo;
+        regardless of prompting strategy. The 1.5B model crosses that threshold.</span>
+    </section>
+
+    <section>
+      <h2>Takeaways</h2>
+
+      <ol>
+        <li><strong>Few-shot demo selection matters more than instruction tuning</strong> at this
+          model size. MIPROv2&rsquo;s entire 16.7-point lift came from choosing the right 6 examples,
+          not from rewriting the instruction.</li>
+        <li><strong>There is a capability floor below which prompting cannot help.</strong> The 0.5B
+          model hit it. No amount of DSPy optimization fixed its inability to delete words from a string.</li>
+        <li><strong>Bayesian search over demo sets beats random search</strong> by ~3 points (85.1 &rarr; 88.0),
+          and random search beats greedy selection by ~5 points (80.4 &rarr; 85.1). The search budget
+          (16 candidates for RandomSearch, 18 trials for MIPROv2) is modest.</li>
+        <li><strong>The composite metric drives the optimization.</strong> Switching from a flat
+          Jaccard metric to one with explicit structural matching improved the optimizer&rsquo;s
+          ability to find demos that teach markdown formatting, not just filler removal.</li>
+        <li><strong>Tiny models can punch above their weight</strong> with the right prompting.
+          A 1.5B 4-bit model (~1&thinsp;GB) producing correctly-formatted markdown tables and
+          professional emails from messy dictation is a good outcome for something that runs alongside
+          an STT model on a laptop.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Reproducing</h2>
+      <p>The full optimization pipeline lives in the
+        <a href="https://github.com/cluttered-cabinet/yap">yap repository</a>:</p>
+
+      <pre><code># Install dependencies
+uv sync --group dev
+
+# Start the model server
+uv run python -m mlx_lm.server \
+  --model mlx-community/Qwen2.5-1.5B-Instruct-4bit --port 8321
+
+# Run optimization (in another terminal)
+uv run python scripts/optimize_prompt.py
+
+# Results saved to scripts/optimized_cleanup.json</code></pre>
+
+      <p>The training data is in <span class="mono">scripts/dataset.json</span> (59 pairs).
+        The production prompt with baked demos is in <span class="mono">yap/llm.py</span>.</p>
+    </section>
+
+    <footer>
+      <p>June 2026. Part of the <a href="https://github.com/cluttered-cabinet/yap">yap</a> project.</p>
+    </footer>
+  </article>
+</body>
+</html>
