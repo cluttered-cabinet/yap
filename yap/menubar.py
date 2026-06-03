@@ -24,13 +24,15 @@ from .styles import STYLES
 
 _SETTINGS_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
 
-# Menu-bar glyph per engine state.
+# Menu-bar label per state. Always includes the text "yap" so the item is
+# visible even when an emoji renders as a blank glyph in the menu bar.
 TITLES = {
-    LOADING: "⏳",
-    IDLE: "🎙️",
-    RECORDING: "🔴",
-    TRANSCRIBING: "✍️",
+    LOADING: "yap ⏳",
+    IDLE: "yap",
+    RECORDING: "yap 🔴",
+    TRANSCRIBING: "yap ✍",
 }
+UNTRUSTED_TITLE = "yap ⚠️"
 
 # Dropdown status line per state.
 STATUS = {
@@ -107,7 +109,7 @@ class MenuBar(rumps.App):
         if not self._trusted:
             # No global key capture / typing without trust. Show how to fix it.
             request_trust()  # adds this app to the Accessibility list
-            self.title = "⚠️"
+            self.title = UNTRUSTED_TITLE
             self._status.title = "Accessibility required — grant, then click Relaunch yap"
             self.run()
             return
