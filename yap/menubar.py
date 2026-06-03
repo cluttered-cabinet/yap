@@ -11,6 +11,7 @@ Accessibility settings instead of printing to stdout.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import threading
 
@@ -59,6 +60,13 @@ class MenuBar(rumps.App):
         request_trust()
         subprocess.run(["open", _SETTINGS_URL], check=False)
 
+    def _relaunch(self, _) -> None:  # noqa: ANN001
+        # In-process trust is cached, so a fresh launch is required to pick it up.
+        app = os.environ.get("YAP_APP")
+        if app:
+            subprocess.Popen(["open", "-n", app])
+            rumps.quit_application()
+
     def start(self) -> None:
         # Accessory: live in the menu bar only, no dock icon, never steal focus.
         NSApplication.sharedApplication().setActivationPolicy_(
@@ -75,6 +83,7 @@ class MenuBar(rumps.App):
                 rumps.MenuItem(
                     "Open Accessibility Settings…", callback=self._open_accessibility
                 ),
+                rumps.MenuItem("Relaunch yap", callback=self._relaunch),
             ]
             self.run()
             return

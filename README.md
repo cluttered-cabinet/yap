@@ -36,11 +36,12 @@ Quit from the menu-bar dropdown.
 
 ## Run in the background (no terminal)
 
-Build a menu-bar app wrapper and launch it without a terminal:
+Build a menu-bar app wrapper and launch it without a terminal. You can build it
+straight into /Applications:
 
 ```sh
-uv run scripts/build_app.py
-open yap.app
+uv run scripts/build_app.py /Applications
+open /Applications/yap.app
 ```
 
 `yap.app` is a thin wrapper that runs this checkout's venv — it is not
@@ -52,8 +53,19 @@ or recreating `.venv`. Logs go to `~/Library/Logs/yap.log`.
 
 **Permissions:** the app has its own identity (separate from your terminal), so
 grant it Microphone, Input Monitoring, and Accessibility on first launch. If
-Accessibility is missing, the menu bar shows **⚠️** with a button to open the
-right settings pane — enable it, then relaunch.
+Accessibility is missing, the menu bar shows **⚠️** with buttons to open the
+settings pane and to relaunch. macOS caches trust per launch, so you **must
+relaunch** (use the "Relaunch yap" menu item) after enabling it.
+
+The build ad-hoc **codesigns** the bundle so the permission grant survives moving
+the app and rebuilding. If you ever granted an *unsigned* build and it got stuck,
+clear the stale grants once, then rebuild:
+
+```sh
+tccutil reset Accessibility com.cluttered-cabinet.yap
+tccutil reset ListenEvent com.cluttered-cabinet.yap
+tccutil reset Microphone com.cluttered-cabinet.yap
+```
 
 ## How it works
 
