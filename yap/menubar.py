@@ -20,6 +20,7 @@ from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
 
 from .app import IDLE, LOADING, RECORDING, TRANSCRIBING, Engine
 from .perms import is_trusted, request_trust
+from .styles import STYLES
 
 _SETTINGS_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
 
@@ -46,6 +47,7 @@ class MenuBar(rumps.App):
         self.engine = engine
         self._trusted = False
         self._status = rumps.MenuItem(STATUS[LOADING])  # no callback => non-clickable label
+        self._style_items: dict[str, rumps.MenuItem] = {}
         # Menu is built once in start() (see _build_menu); building it here too
         # would re-add self._status and crash ("already is in another menu").
 
@@ -68,15 +70,32 @@ class MenuBar(rumps.App):
             subprocess.Popen(["open", "-n", app])
             rumps.quit_application()
 
+    def _select_style(self, sender) -> None:  # noqa: ANN001
+        name = sender.title.lower()
+        self.engine.set_style(name)
+        for n, item in self._style_items.items():
+            item.state = 1 if n == name else 0
+
+    def _build_style_submenu(self) -> rumps.MenuItem:
+        menu = rumps.MenuItem("Style")
+        self._style_items = {}
+        for name in STYLES:
+            item = rumps.MenuItem(name.capitalize(), callback=self._select_style)
+            item.state = 1 if name == self.engine.style else 0
+            self._style_items[name] = item
+            menu.add(item)
+        return menu
+
     def _build_menu(self, trusted: bool) -> None:
         """Build the dropdown exactly once. Each MenuItem may belong to one menu."""
-        items = [self._status]
         if not trusted:
-            items.append(
-                rumps.MenuItem("Open Accessibility Settings…", callback=self._open_accessibility)
-            )
-            items.append(rumps.MenuItem("Relaunch yap", callback=self._relaunch))
-        self.menu = items
+            self.menu = [
+                self._status,
+                rumps.MenuItem("Open Accessibility Settings…", callback=self._open_accessibility),
+                rumps.MenuItem("Relaunch yap", callback=self._relaunch),
+            ]
+            return
+        self.menu = [self._status, self._build_style_submenu()]
 
     def start(self) -> None:
         # Accessory: live in the menu bar only, no dock icon, never steal focus.

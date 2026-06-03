@@ -34,6 +34,18 @@ Two ways to dictate with **Right Option (⌥)** — pick whichever fits the mome
 
 Quit from the menu-bar dropdown.
 
+## Styles (vocal theming)
+
+The menu-bar **Style** submenu transforms the transcript before it's typed. The
+choice persists across launches (`~/.config/yap/config.json`).
+
+- **plain** — verbatim from the model (default)
+- **lowercase** — all lowercase, sf-tech-bro aesthetic
+- **uppercase** — ALL CAPS
+
+Add your own in `yap/styles.py`: any `str -> str` function dropped into `STYLES`
+shows up in the menu automatically.
+
 ## Run in the background (no terminal)
 
 Build a menu-bar app wrapper and launch it without a terminal. You can build it

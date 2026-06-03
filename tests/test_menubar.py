@@ -33,3 +33,20 @@ def test_trusted_menu_builds_without_crashing():
     bar._build_menu(trusted=True)  # must not raise
     # No permission affordances when trusted.
     assert not any("Relaunch" in t for t in _menu_titles(bar))
+
+
+def test_style_submenu_reflects_and_switches(monkeypatch, tmp_path):
+    from yap import config
+
+    monkeypatch.setattr(config, "PATH", tmp_path / "config.json")
+    engine = Engine()
+    engine.set_style("plain")
+    bar = MenuBar(engine)
+    bar._build_style_submenu()
+    assert bar._style_items["plain"].state == 1
+    assert bar._style_items["lowercase"].state == 0
+    # Selecting lowercase updates the engine and moves the checkmark.
+    bar._select_style(bar._style_items["lowercase"])
+    assert engine.style == "lowercase"
+    assert bar._style_items["lowercase"].state == 1
+    assert bar._style_items["plain"].state == 0

@@ -32,9 +32,11 @@ import time
 import numpy as np
 from pynput import keyboard
 
+from . import config
 from .audio import Recorder
 from .inject import type_text
 from .stt import SAMPLE_RATE, Transcriber
+from .styles import DEFAULT_STYLE, STYLES, apply_style
 
 # Right Option: produces no character when tapped alone, so it's a safe key.
 DEFAULT_TOGGLE = keyboard.Key.alt_r
@@ -64,6 +66,7 @@ class Engine:
         self.toggle = toggle_key
         self.recorder = Recorder(SAMPLE_RATE)
         self.transcriber: Transcriber | None = None  # built on the engine thread
+        self.style = config.get("style", DEFAULT_STYLE)  # vocal theming
         self.state = LOADING
         self._mode: str | None = None  # None | _HOLD | _TOGGLE
         self._down = False  # toggle key physically held right now
@@ -164,13 +167,20 @@ class Engine:
         self.state = IDLE
         self._consume()
 
+    def set_style(self, name: str) -> None:
+        """Switch the output style and persist it. Unknown names are ignored."""
+        if name not in STYLES:
+            return
+        self.style = name
+        config.set("style", name)
+
     def _consume(self) -> None:
         while True:
             samples = self._q.get()
             if samples is None:  # shutdown sentinel
                 return
             self.state = TRANSCRIBING
-            text = self.transcriber.transcribe(samples)
+            text = apply_style(self.style, self.transcriber.transcribe(samples))
             print(f"  -> {text!r}", flush=True)
             if text:
                 type_text(text)
