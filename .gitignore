@@ -8,6 +8,3 @@ wheels/
 
 # Virtual environments
 .venv
-
-# Built app wrapper (contains machine-specific absolute paths)
-/yap.app

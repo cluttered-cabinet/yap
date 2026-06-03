@@ -24,7 +24,6 @@ def test_untrusted_menu_builds_without_crashing():
     bar = MenuBar(Engine())
     bar._build_menu(trusted=False)  # regression: must not raise
     titles = _menu_titles(bar)
-    assert any("Relaunch" in t for t in titles)
     assert any("Accessibility" in t for t in titles)
 
 

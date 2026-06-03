@@ -1,17 +1,15 @@
 """Menu-bar status indicator (rumps / AppKit).
 
 Runs the AppKit event loop on the main thread and drives the engine on a worker
-thread. A timer polls the engine's `state` and updates the menu-bar glyph, so all
+thread. A timer polls the engine's `state` and updates the menu-bar label, so all
 AppKit mutations happen on the main thread (cross-thread UI calls are unsafe).
 
-Also owns the Accessibility-trust gate: when launched as a .app there is no
-terminal, so an untrusted launch shows a ⚠️ menu with a button to open the
-Accessibility settings instead of printing to stdout.
+If the host process isn't trusted for Accessibility, the menu shows a ⚠️ state
+with a button to open the right settings pane (you grant your terminal app).
 """
 
 from __future__ import annotations
 
-import os
 import subprocess
 import threading
 
@@ -24,8 +22,8 @@ from .styles import STYLES
 
 _SETTINGS_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
 
-# Menu-bar label per state. Always includes the text "yap" so the item is
-# visible even when an emoji renders as a blank glyph in the menu bar.
+# Menu-bar label per state. The text "yap" keeps the item visible even if an
+# emoji renders as a blank glyph in some menu bars.
 TITLES = {
     LOADING: "yap ⏳",
     IDLE: "yap",
@@ -56,7 +54,7 @@ class MenuBar(rumps.App):
     @rumps.timer(0.15)
     def _refresh(self, _) -> None:  # noqa: ANN001
         if not self._trusted:
-            return  # ⚠️ permission UI owns the title until granted + relaunched
+            return  # ⚠️ permission UI owns the label until granted + restarted
         st = self.engine.state
         self.title = TITLES.get(st, TITLES[IDLE])
         self._status.title = STATUS.get(st, st)
@@ -64,13 +62,6 @@ class MenuBar(rumps.App):
     def _open_accessibility(self, _) -> None:  # noqa: ANN001
         request_trust()
         subprocess.run(["open", _SETTINGS_URL], check=False)
-
-    def _relaunch(self, _) -> None:  # noqa: ANN001
-        # In-process trust is cached, so a fresh launch is required to pick it up.
-        app = os.environ.get("YAP_APP")
-        if app:
-            subprocess.Popen(["open", "-n", app])
-            rumps.quit_application()
 
     def _select_style(self, sender) -> None:  # noqa: ANN001
         name = sender.title.lower()
@@ -94,7 +85,6 @@ class MenuBar(rumps.App):
             self.menu = [
                 self._status,
                 rumps.MenuItem("Open Accessibility Settings…", callback=self._open_accessibility),
-                rumps.MenuItem("Relaunch yap", callback=self._relaunch),
             ]
             return
         self.menu = [self._status, self._build_style_submenu()]
@@ -107,10 +97,10 @@ class MenuBar(rumps.App):
         self._trusted = is_trusted()
         self._build_menu(self._trusted)
         if not self._trusted:
-            # No global key capture / typing without trust. Show how to fix it.
-            request_trust()  # adds this app to the Accessibility list
+            # No global key capture / typing without trust. Point the user at it.
+            request_trust()  # prompts to add your terminal to the Accessibility list
             self.title = UNTRUSTED_TITLE
-            self._status.title = "Accessibility required — grant, then click Relaunch yap"
+            self._status.title = "Accessibility needed — grant your terminal, then restart yap"
             self.run()
             return
         # Engine owns all MLX work on its own thread (streams are thread-local).
