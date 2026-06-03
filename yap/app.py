@@ -19,7 +19,7 @@ import numpy as np
 from pynput import keyboard
 
 from .audio import Recorder
-from .inject import paste_text
+from .inject import type_text
 from .stt import Transcriber
 
 # Right Option: produces no character when tapped alone, so it's a safe toggle key.
@@ -53,7 +53,7 @@ class App:
             text = self.transcriber.transcribe(samples)
             print(f"  -> {text!r}", flush=True)
             if text:
-                paste_text(text)
+                type_text(text)
 
     def on_press(self, key) -> None:  # noqa: ANN001
         if key != self.toggle:

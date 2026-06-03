@@ -1,42 +1,32 @@
-"""Insert transcribed text into the focused app.
+"""Insert transcribed text into the focused app via synthesized keystrokes.
 
-Strategy: write to the system clipboard, then synthesize Cmd+V. Pasting is far
-faster and more reliable than synthesizing each keystroke, and it preserves
-Unicode (accents, CJK) that per-character typing mangles.
+We type the text directly as Unicode key events rather than using the clipboard,
+so the user's clipboard is never touched (no save/restore, no clobbering images
+or rich content). pynput's Controller.type emits each character through
+CGEventKeyboardSetUnicodeString on macOS, which is layout-independent and handles
+accents/CJK correctly.
 
-The prior clipboard contents are restored after pasting so dictation doesn't
-clobber whatever the user had copied.
+A small per-character delay avoids dropped characters: posting events faster than
+the target app drains its event queue can silently lose keystrokes in some apps.
 """
 
 from __future__ import annotations
 
-import subprocess
 import time
 
-from pynput.keyboard import Controller, Key
+from pynput.keyboard import Controller
 
 _kb = Controller()
 
-
-def _get_clipboard() -> str:
-    return subprocess.run(["pbpaste"], capture_output=True, text=True).stdout
-
-
-def _set_clipboard(text: str) -> None:
-    subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
+# Seconds between characters. ~0.005s is imperceptible for dictation-length text
+# while staying slow enough that fast/slow apps don't drop characters.
+TYPE_DELAY = 0.005
 
 
-def paste_text(text: str, restore_clipboard: bool = True) -> None:
+def type_text(text: str, delay: float = TYPE_DELAY) -> None:
     if not text:
         return
-    saved = _get_clipboard() if restore_clipboard else None
-    _set_clipboard(text)
-    # Give the pasteboard a beat to settle before the keystroke.
-    time.sleep(0.05)
-    with _kb.pressed(Key.cmd):
-        _kb.press("v")
-        _kb.release("v")
-    if saved is not None:
-        # Let the target app read the pasteboard before we put the old value back.
-        time.sleep(0.15)
-        _set_clipboard(saved)
+    for ch in text:
+        _kb.type(ch)
+        if delay:
+            time.sleep(delay)

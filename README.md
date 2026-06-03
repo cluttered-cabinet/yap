@@ -14,7 +14,7 @@ Transcription runs entirely on-device via [`parakeet-mlx`](https://github.com/se
 - Grant your terminal these permissions in **System Settings → Privacy & Security**:
   - **Microphone** — capture audio
   - **Input Monitoring** — detect the toggle key
-  - **Accessibility** — synthesize Cmd+V to paste
+  - **Accessibility** — synthesize keystrokes to type at the cursor
 
 ## Usage
 
@@ -34,10 +34,10 @@ First run downloads the model (~1.2 GB). Then:
 ## How it works
 
 ```
-double-tap ⌥  →  mic capture  →  log-mel  →  parakeet-mlx  →  clipboard + ⌘V
-(keyboard      (sounddevice,     (in-RAM,    (on-device      (restores prior
- listener)      16 kHz mono)      no temp     MLX/Metal)       clipboard)
-                                  files)
+double-tap ⌥  →  mic capture  →  log-mel  →  parakeet-mlx  →  keystrokes
+(keyboard      (sounddevice,     (in-RAM,    (on-device      (typed at cursor,
+ listener)      16 kHz mono)      no temp     MLX/Metal)       clipboard never
+                                  files)                       touched)
 ```
 
 The keyboard listener runs in the background; all MLX work stays on the main
