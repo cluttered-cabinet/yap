@@ -46,7 +46,8 @@ class MenuBar(rumps.App):
         self.engine = engine
         self._trusted = False
         self._status = rumps.MenuItem(STATUS[LOADING])  # no callback => non-clickable label
-        self.menu = [self._status]
+        # Menu is built once in start() (see _build_menu); building it here too
+        # would re-add self._status and crash ("already is in another menu").
 
     @rumps.timer(0.15)
     def _refresh(self, _) -> None:  # noqa: ANN001
@@ -67,24 +68,28 @@ class MenuBar(rumps.App):
             subprocess.Popen(["open", "-n", app])
             rumps.quit_application()
 
+    def _build_menu(self, trusted: bool) -> None:
+        """Build the dropdown exactly once. Each MenuItem may belong to one menu."""
+        items = [self._status]
+        if not trusted:
+            items.append(
+                rumps.MenuItem("Open Accessibility Settings…", callback=self._open_accessibility)
+            )
+            items.append(rumps.MenuItem("Relaunch yap", callback=self._relaunch))
+        self.menu = items
+
     def start(self) -> None:
         # Accessory: live in the menu bar only, no dock icon, never steal focus.
         NSApplication.sharedApplication().setActivationPolicy_(
             NSApplicationActivationPolicyAccessory
         )
         self._trusted = is_trusted()
+        self._build_menu(self._trusted)
         if not self._trusted:
             # No global key capture / typing without trust. Show how to fix it.
             request_trust()  # adds this app to the Accessibility list
             self.title = "⚠️"
-            self._status.title = "Accessibility required — grant, then relaunch yap"
-            self.menu = [
-                self._status,
-                rumps.MenuItem(
-                    "Open Accessibility Settings…", callback=self._open_accessibility
-                ),
-                rumps.MenuItem("Relaunch yap", callback=self._relaunch),
-            ]
+            self._status.title = "Accessibility required — grant, then click Relaunch yap"
             self.run()
             return
         # Engine owns all MLX work on its own thread (streams are thread-local).
