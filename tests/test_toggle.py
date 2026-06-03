@@ -11,13 +11,13 @@ import pytest
 from pynput import keyboard
 
 from yap.app import (
+    _HOLD,
+    _TOGGLE,
     DOUBLE_TAP_WINDOW,
     IDLE,
     RECORDING,
     TRANSCRIBING,
     Engine,
-    _HOLD,
-    _TOGGLE,
 )
 
 OTHER = keyboard.Key.shift  # a non-toggle key

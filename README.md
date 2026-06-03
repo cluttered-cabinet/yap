@@ -34,7 +34,7 @@ yap itself. The first run also prompts you.)
 ## Usage
 
 ```sh
-uv run main.py
+uv run yap
 ```
 
 First run downloads the model (~1.2 GB). A menu-bar item shows the state:

@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from yap import config
 from yap.app import Engine
 from yap.styles import DEFAULT_STYLE, STYLES, apply_style
-
 
 # --- transforms -----------------------------------------------------------
 

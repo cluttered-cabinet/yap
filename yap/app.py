@@ -149,9 +149,7 @@ class Engine:
         self._q.put(samples)
 
     def start_listener(self) -> None:
-        self._listener = keyboard.Listener(
-            on_press=self.on_press, on_release=self.on_release
-        )
+        self._listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
         self._listener.start()
 
     # --- engine thread ---------------------------------------------------
