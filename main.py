@@ -3,7 +3,7 @@
 Run with: uv run main.py
 
 Double-tap Right Option to start recording; double-tap again to stop, transcribe,
-and paste at the cursor.
+and type the result at the cursor. A menu-bar icon shows the current state.
 
 Requires (System Settings > Privacy & Security):
   - Microphone        access for your terminal
@@ -11,9 +11,9 @@ Requires (System Settings > Privacy & Security):
   - Accessibility     access for your terminal (to synthesize keystrokes)
 """
 
-from yap.app import App
+from yap.app import Engine
+from yap.menubar import MenuBar
 from yap.perms import is_trusted, request_trust
-from yap.stt import Transcriber
 
 
 def preflight() -> bool:
@@ -41,10 +41,9 @@ def preflight() -> bool:
 def main() -> None:
     if not preflight():
         return
-    print("Loading model (first run downloads ~1.2GB) ...", flush=True)
-    transcriber = Transcriber()
-    print("Model ready.", flush=True)
-    App(transcriber).run()
+    print("Starting yap — the model loads in the background.", flush=True)
+    print("Watch the menu bar: ⏳ loading, 🎙️ ready, 🔴 recording, ✍️ transcribing.", flush=True)
+    MenuBar(Engine()).start()
 
 
 if __name__ == "__main__":

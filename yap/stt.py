@@ -15,10 +15,17 @@ from parakeet_mlx.audio import get_logmel
 
 DEFAULT_MODEL = "mlx-community/parakeet-tdt-0.6b-v3"
 
+# Parakeet's expected input rate. The recorder uses this before the model is
+# loaded, so it's a module constant; Transcriber asserts the model agrees.
+SAMPLE_RATE = 16000
+
 
 class Transcriber:
     def __init__(self, model_id: str = DEFAULT_MODEL) -> None:
         self.model = from_pretrained(model_id)
+        assert self.sample_rate == SAMPLE_RATE, (
+            f"model sample rate {self.sample_rate} != expected {SAMPLE_RATE}"
+        )
 
     @property
     def sample_rate(self) -> int:

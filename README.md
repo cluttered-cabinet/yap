@@ -22,26 +22,28 @@ Transcription runs entirely on-device via [`parakeet-mlx`](https://github.com/se
 uv run main.py
 ```
 
-First run downloads the model (~1.2 GB). Then:
+First run downloads the model (~1.2 GB). A menu-bar icon shows the state:
+⏳ loading · 🎙️ ready · 🔴 recording · ✍️ transcribing. Then:
 
-1. **Double-tap Right Option (⌥)** to start recording.
+1. **Double-tap Right Option (⌥)** to start recording (icon turns 🔴).
 2. Speak as long as you like.
-3. **Double-tap Right Option** again to stop — the text is transcribed and pasted
-   wherever your cursor is.
+3. **Double-tap Right Option** again to stop — the text is transcribed (✍️) and
+   typed wherever your cursor is.
 
-`Ctrl+C` to quit.
+Quit from the menu-bar dropdown.
 
 ## How it works
 
 ```
 double-tap ⌥  →  mic capture  →  log-mel  →  parakeet-mlx  →  keystrokes
-(keyboard      (sounddevice,     (in-RAM,    (on-device      (typed at cursor,
- listener)      16 kHz mono)      no temp     MLX/Metal)       clipboard never
-                                  files)                       touched)
+(listener      (sounddevice,     (in-RAM,    (on-device      (typed at cursor,
+ thread)        16 kHz mono)      no temp     MLX/Metal,       clipboard never
+                                  files)      engine thread)   touched)
 ```
 
-The keyboard listener runs in the background; all MLX work stays on the main
-thread (MLX streams are thread-local).
+Three threads: the menu bar (AppKit) owns the main thread, the engine builds and
+runs the model on its own thread (MLX streams are thread-local), and the keyboard
+listener runs in the background. A timer polls engine state to update the icon.
 
 ## Development
 
