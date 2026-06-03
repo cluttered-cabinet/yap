@@ -1,0 +1,52 @@
+{
+  "predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "transcript": "Um testing out whether or not the uh cleanup functionality works.",
+        "cleaned": "Testing out whether the cleanup functionality works."
+      },
+      {
+        "augmented": true,
+        "transcript": "So like I was thinking you know maybe we should like refactor the the database layer",
+        "cleaned": "So I was thinking we should refactor the database layer."
+      },
+      {
+        "augmented": true,
+        "transcript": "I mean basically what what I'm trying to say is that um the the API is is broken",
+        "cleaned": "Basically what you want to do is run the migrations first."
+      },
+      {
+        "transcript": "I think I think we should probably you know move the the meeting to to Thursday",
+        "cleaned": "I think we should probably move the meeting to Thursday."
+      },
+      {
+        "transcript": "Actually you know what let's let's just just revert the the last commit",
+        "cleaned": "Actually, let's just revert the last commit."
+      }
+    ],
+    "signature": {
+      "instructions": "Clean up a raw speech-to-text transcript.\n\nRemove filler words, false starts, stutters, and repeated phrases.\nFix punctuation and capitalization.\nDo NOT change the meaning, tone, or vocabulary.\nOutput ONLY the cleaned text.",
+      "fields": [
+        {
+          "prefix": "Transcript:",
+          "description": "raw speech-to-text transcript"
+        },
+        {
+          "prefix": "Cleaned:",
+          "description": "cleaned transcript with fillers and disfluencies removed"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.2.1",
+      "cloudpickle": "3.1"
+    }
+  }
+}

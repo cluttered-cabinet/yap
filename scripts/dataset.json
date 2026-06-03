@@ -1,0 +1,243 @@
+[
+  {
+    "transcript": "Um testing out whether or not the uh cleanup functionality works.",
+    "cleaned": "Testing out whether the cleanup functionality works."
+  },
+  {
+    "transcript": "So like I was thinking you know maybe we should like refactor the the database layer",
+    "cleaned": "I was thinking maybe we should refactor the database layer."
+  },
+  {
+    "transcript": "I mean basically what what I'm trying to say is that um the the API is is broken",
+    "cleaned": "What I'm trying to say is that the API is broken."
+  },
+  {
+    "transcript": "Actually it's it's pretty simple right you just you just call the function",
+    "cleaned": "It's pretty simple, you just call the function."
+  },
+  {
+    "transcript": "Well uh I guess I guess we need to to fix the the authentication flow",
+    "cleaned": "I guess we need to fix the authentication flow."
+  },
+  {
+    "transcript": "Can you um can you send me the the report by Friday",
+    "cleaned": "Can you send me the report by Friday?"
+  },
+  {
+    "transcript": "So basically what happened was uh the server went down and like nobody noticed for like two hours",
+    "cleaned": "What happened was the server went down and nobody noticed for two hours."
+  },
+  {
+    "transcript": "I think I think we should probably you know move the the meeting to to Thursday",
+    "cleaned": "I think we should probably move the meeting to Thursday."
+  },
+  {
+    "transcript": "Hey so um I just wanted to like follow up on the on the pull request from yesterday",
+    "cleaned": "Hey, I just wanted to follow up on the pull request from yesterday."
+  },
+  {
+    "transcript": "Right so the the thing is is that we we don't have enough enough test coverage",
+    "cleaned": "The thing is that we don't have enough test coverage."
+  },
+  {
+    "transcript": "Okay so um let me let me think about this for a for a second",
+    "cleaned": "Okay, let me think about this for a second."
+  },
+  {
+    "transcript": "You know what I I actually think the the first approach was was better",
+    "cleaned": "You know what, I actually think the first approach was better."
+  },
+  {
+    "transcript": "Like the the whole point of of this exercise is to to reduce latency right",
+    "cleaned": "The whole point of this exercise is to reduce latency."
+  },
+  {
+    "transcript": "So we we need to um we need to add add error handling to the to the webhook endpoint",
+    "cleaned": "We need to add error handling to the webhook endpoint."
+  },
+  {
+    "transcript": "I was I was gonna say that uh maybe we should just just use Redis for for caching",
+    "cleaned": "I was gonna say that maybe we should just use Redis for caching."
+  },
+  {
+    "transcript": "The uh the deployment pipeline is is kind of kind of slow right now",
+    "cleaned": "The deployment pipeline is kind of slow right now."
+  },
+  {
+    "transcript": "Basically what you want to do is is you want to like run the migrations first",
+    "cleaned": "What you want to do is run the migrations first."
+  },
+  {
+    "transcript": "Um I don't I don't really understand why why it's failing on on CI",
+    "cleaned": "I don't really understand why it's failing on CI."
+  },
+  {
+    "transcript": "So yeah the the customer reported that uh the the checkout page was was loading really slowly",
+    "cleaned": "The customer reported that the checkout page was loading really slowly."
+  },
+  {
+    "transcript": "We should we should probably probably set up set up monitoring before before we go to production",
+    "cleaned": "We should probably set up monitoring before we go to production."
+  },
+  {
+    "transcript": "Let me uh let me pull up the the logs and and see what's what's going on",
+    "cleaned": "Let me pull up the logs and see what's going on."
+  },
+  {
+    "transcript": "I mean it's it's not not a huge deal but but we should fix it eventually",
+    "cleaned": "It's not a huge deal but we should fix it eventually."
+  },
+  {
+    "transcript": "The uh the new hire starts starts on Monday and and we need to to get their their laptop ready",
+    "cleaned": "The new hire starts on Monday and we need to get their laptop ready."
+  },
+  {
+    "transcript": "Actually you know what let's let's just just revert the the last commit",
+    "cleaned": "Actually, let's just revert the last commit."
+  },
+  {
+    "transcript": "So the so the main issue is that um the the database queries are are not not indexed properly",
+    "cleaned": "The main issue is that the database queries are not indexed properly."
+  },
+  {
+    "transcript": "Hey can you can you review my my PR when you when you get a chance",
+    "cleaned": "Hey, can you review my PR when you get a chance?"
+  },
+  {
+    "transcript": "I was thinking that uh maybe we we could use use TypeScript for for the frontend",
+    "cleaned": "I was thinking that maybe we could use TypeScript for the frontend."
+  },
+  {
+    "transcript": "Alright so so let's let's wrap up the the standup does does anyone have any any blockers",
+    "cleaned": "Alright, let's wrap up the standup. Does anyone have any blockers?"
+  },
+  {
+    "transcript": "The the tests are are passing locally but but failing on on the CI server for for some reason",
+    "cleaned": "The tests are passing locally but failing on the CI server for some reason."
+  },
+  {
+    "transcript": "I'll I'll take a look at at that bug after after lunch",
+    "cleaned": "I'll take a look at that bug after lunch."
+  },
+
+  {
+    "transcript": "so the action items from today's meeting are first we need to update the API docs second we need to fix the login bug third we need to deploy to staging and fourth we need to um send the release notes to the team",
+    "cleaned": "Action items from today's meeting:\n\n1. Update the API docs\n2. Fix the login bug\n3. Deploy to staging\n4. Send the release notes to the team"
+  },
+  {
+    "transcript": "okay so the requirements for the new feature are uh it needs to support batch uploads it needs to have retry logic it needs to send email notifications and it needs to like log everything to CloudWatch",
+    "cleaned": "Requirements for the new feature:\n\n- Support batch uploads\n- Retry logic\n- Email notifications\n- Log everything to CloudWatch"
+  },
+  {
+    "transcript": "um the the pros of going with Postgres are it's battle tested it has great JSON support and it's free the cons are uh it's harder to scale horizontally and we'd need to manage it ourselves",
+    "cleaned": "**Pros of Postgres:**\n- Battle-tested\n- Great JSON support\n- Free\n\n**Cons:**\n- Harder to scale horizontally\n- We'd need to manage it ourselves"
+  },
+  {
+    "transcript": "the the shopping list is uh milk eggs bread butter cheese yogurt and um orange juice",
+    "cleaned": "Shopping list:\n\n- Milk\n- Eggs\n- Bread\n- Butter\n- Cheese\n- Yogurt\n- Orange juice"
+  },
+  {
+    "transcript": "so for the comparison uh Redis has in-memory storage and it's super fast but volatile and Postgres has disk storage and it's slower but durable and then DynamoDB is managed and scales automatically but it's expensive",
+    "cleaned": "| Database | Storage | Speed | Durability | Cost |\n|---|---|---|---|---|\n| Redis | In-memory | Super fast | Volatile | — |\n| Postgres | Disk | Slower | Durable | — |\n| DynamoDB | Managed | Auto-scales | Durable | Expensive |"
+  },
+  {
+    "transcript": "the team members and their roles are uh Sarah is the tech lead Marcus is backend David is frontend and um Lisa is QA",
+    "cleaned": "Team members and roles:\n\n| Name | Role |\n|---|---|\n| Sarah | Tech lead |\n| Marcus | Backend |\n| David | Frontend |\n| Lisa | QA |"
+  },
+  {
+    "transcript": "so the sprint velocity for the last four weeks was uh week one was twenty one points week two was eighteen points week three was twenty five points and week four was twenty two points",
+    "cleaned": "Sprint velocity (last 4 weeks):\n\n| Week | Points |\n|---|---|\n| 1 | 21 |\n| 2 | 18 |\n| 3 | 25 |\n| 4 | 22 |"
+  },
+
+  {
+    "transcript": "hi Sarah um I wanted to follow up on our conversation from yesterday regarding the Q3 budget um I've reviewed the the numbers and I think we can um allocate an additional fifteen thousand to the infrastructure team let me know if you'd like to discuss this further",
+    "cleaned": "Hi Sarah,\n\nI wanted to follow up on our conversation from yesterday regarding the Q3 budget. I've reviewed the numbers and I think we can allocate an additional $15,000 to the infrastructure team.\n\nLet me know if you'd like to discuss this further."
+  },
+  {
+    "transcript": "dear hiring manager I am writing to express my interest in the senior software engineer position at your company um I have over eight years of experience in backend development and um I believe my skills in Python and distributed systems would be a valuable addition to your team",
+    "cleaned": "Dear Hiring Manager,\n\nI am writing to express my interest in the Senior Software Engineer position at your company. I have over 8 years of experience in backend development, and I believe my skills in Python and distributed systems would be a valuable addition to your team."
+  },
+  {
+    "transcript": "hey team just a quick update um the deploy went smoothly uh no issues so far monitoring looks clean and uh we're good to go for the demo tomorrow",
+    "cleaned": "Hey team, just a quick update — the deploy went smoothly, no issues so far. Monitoring looks clean and we're good to go for the demo tomorrow."
+  },
+  {
+    "transcript": "to whom it may concern I am writing to formally request a refund for order number twelve thirty four five six um the item arrived damaged and does not match the description on your website I have attached photos for your reference",
+    "cleaned": "To Whom It May Concern,\n\nI am writing to formally request a refund for order #123456. The item arrived damaged and does not match the description on your website. I have attached photos for your reference."
+  },
+
+  {
+    "transcript": "so the steps to deploy are first run the test suite then build the Docker image then push to ECR then update the ECS task definition and finally trigger a rolling deploy",
+    "cleaned": "Steps to deploy:\n\n1. Run the test suite\n2. Build the Docker image\n3. Push to ECR\n4. Update the ECS task definition\n5. Trigger a rolling deploy"
+  },
+  {
+    "transcript": "to set up the dev environment you need to um first clone the repo then run npm install then copy the env example file to dot env then run the database migrations and then start the dev server",
+    "cleaned": "To set up the dev environment:\n\n1. Clone the repo\n2. Run `npm install`\n3. Copy `.env.example` to `.env`\n4. Run the database migrations\n5. Start the dev server"
+  },
+  {
+    "transcript": "the bug is in the checkout flow so when a user adds an item to cart then goes to checkout then enters their payment info then clicks submit uh the page just like hangs and nothing happens",
+    "cleaned": "The bug is in the checkout flow:\n\n1. User adds an item to cart\n2. Goes to checkout\n3. Enters payment info\n4. Clicks submit\n5. Page hangs — nothing happens"
+  },
+
+  {
+    "transcript": "schedule a meeting with the design team for next Tuesday at two PM",
+    "cleaned": "Schedule a meeting with the design team for next Tuesday at 2 PM."
+  },
+  {
+    "transcript": "Remind me to call Sarah at five thirty",
+    "cleaned": "Remind me to call Sarah at 5:30."
+  },
+  {
+    "transcript": "We need three hundred units shipped by end of quarter",
+    "cleaned": "We need 300 units shipped by end of quarter."
+  },
+  {
+    "transcript": "the total cost is twelve thousand five hundred dollars and the deadline is January fifteenth twenty twenty seven",
+    "cleaned": "The total cost is $12,500 and the deadline is January 15, 2027."
+  },
+  {
+    "transcript": "the server is running on port eight zero eight zero and the database is on port five four three two",
+    "cleaned": "The server is running on port 8080 and the database is on port 5432."
+  },
+
+  {
+    "transcript": "The quick brown fox jumps over the lazy dog",
+    "cleaned": "The quick brown fox jumps over the lazy dog."
+  },
+  {
+    "transcript": "Please update the documentation before merging",
+    "cleaned": "Please update the documentation before merging."
+  },
+  {
+    "transcript": "the function takes two parameters a string and an integer and returns a boolean",
+    "cleaned": "The function takes two parameters — a string and an integer — and returns a boolean."
+  },
+  {
+    "transcript": "um so yeah that's basically it I think we're we're good to to ship this",
+    "cleaned": "That's it, I think we're good to ship this."
+  },
+  {
+    "transcript": "so in summary the the main takeaways are we need to improve performance we need to add caching and we need to write more tests",
+    "cleaned": "In summary, the main takeaways are:\n\n1. Improve performance\n2. Add caching\n3. Write more tests"
+  },
+  {
+    "transcript": "note to self um remember to update the SSL certificates before they expire on March first and also renew the domain registration",
+    "cleaned": "Note to self: remember to update the SSL certificates before they expire on March 1st, and also renew the domain registration."
+  },
+  {
+    "transcript": "the the agenda for tomorrow's meeting is um first the sprint review then the retrospective then planning for next sprint and then open discussion",
+    "cleaned": "Agenda for tomorrow's meeting:\n\n1. Sprint review\n2. Retrospective\n3. Planning for next sprint\n4. Open discussion"
+  },
+  {
+    "transcript": "okay so the the P zero bugs are the login page crash the payment timeout and the data export failure and the P one bugs are the slow search and the UI alignment issue",
+    "cleaned": "**P0 bugs:**\n- Login page crash\n- Payment timeout\n- Data export failure\n\n**P1 bugs:**\n- Slow search\n- UI alignment issue"
+  },
+  {
+    "transcript": "things I need to pack for the trip are uh passport charger laptop headphones um toiletries and a change of clothes",
+    "cleaned": "Things to pack for the trip:\n\n- Passport\n- Charger\n- Laptop\n- Headphones\n- Toiletries\n- Change of clothes"
+  },
+  {
+    "transcript": "the api endpoint is slash api slash v2 slash users and it accepts get post and delete methods the get takes an optional query parameter called status which can be active or inactive",
+    "cleaned": "The API endpoint is `/api/v2/users` and it accepts GET, POST, and DELETE methods. The GET takes an optional query parameter called `status` which can be `active` or `inactive`."
+  }
+]

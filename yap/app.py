@@ -38,6 +38,9 @@ from .inject import type_text
 from .stt import SAMPLE_RATE, Transcriber
 from .styles import DEFAULT_STYLE, STYLES, apply_style
 
+# Styles that use the LLM (show a separate "cleaning" state in the UI).
+_LLM_STYLES = frozenset({"clean"})
+
 # Right Option: produces no character when tapped alone, so it's a safe key.
 DEFAULT_TOGGLE = keyboard.Key.alt_r
 
@@ -55,6 +58,7 @@ LOADING = "loading"
 IDLE = "idle"
 RECORDING = "recording"
 TRANSCRIBING = "transcribing"
+CLEANING = "cleaning"
 
 # Active-recording modes.
 _HOLD = "hold"
@@ -178,7 +182,10 @@ class Engine:
             if samples is None:  # shutdown sentinel
                 return
             self.state = TRANSCRIBING
-            text = apply_style(self.style, self.transcriber.transcribe(samples))
+            raw = self.transcriber.transcribe(samples)
+            if self.style in _LLM_STYLES:
+                self.state = CLEANING
+            text = apply_style(self.style, raw)
             print(f"  -> {text!r}", flush=True)
             if text:
                 type_text(text)

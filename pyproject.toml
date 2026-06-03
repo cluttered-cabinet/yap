@@ -7,6 +7,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
+    "mlx-lm>=0.31.3",
     "numpy>=2.4.6",
     "parakeet-mlx>=0.5.1",
     "pynput>=1.8.2",
@@ -26,6 +27,8 @@ packages = ["yap"]
 
 [dependency-groups]
 dev = [
+    "dspy>=3.2.1",
+    "optuna>=4.9.0",
     "pytest>=9.0.3",
     "ruff>=0.9.0",
 ]

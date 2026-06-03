@@ -58,6 +58,9 @@ choice persists across runs (`~/.config/yap/config.json`):
 - **plain** — verbatim (default)
 - **lowercase** — all lowercase
 - **uppercase** — ALL CAPS
+- **clean** — LLM-powered cleanup: removes filler words (um, uh, like…), fixes
+  punctuation and capitalization, drops false starts. Uses a small on-device
+  model via mlx-lm (~1 GB download on first use). No cloud, no account.
 
 Add your own in `yap/styles.py`: any `str -> str` function in `STYLES` shows up
 in the menu automatically.

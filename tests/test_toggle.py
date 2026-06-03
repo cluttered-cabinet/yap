@@ -63,8 +63,9 @@ class Clock:
 
 
 @pytest.fixture
-def env(monkeypatch):
+def env(monkeypatch, tmp_path):
     monkeypatch.setattr("yap.app.threading.Timer", FakeTimer)
+    monkeypatch.setattr("yap.config.PATH", tmp_path / "config.json")
     clock = Clock(monkeypatch)
     engine = Engine()
     rec = FakeRecorder(16000)

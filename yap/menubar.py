@@ -16,7 +16,7 @@ import threading
 import rumps
 from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
 
-from .app import IDLE, LOADING, RECORDING, TRANSCRIBING, Engine
+from .app import CLEANING, IDLE, LOADING, RECORDING, TRANSCRIBING, Engine
 from .perms import is_trusted, request_trust
 from .styles import STYLES
 
@@ -29,6 +29,7 @@ TITLES = {
     IDLE: "yap",
     RECORDING: "yap 🔴",
     TRANSCRIBING: "yap ✍",
+    CLEANING: "yap ✨",
 }
 UNTRUSTED_TITLE = "yap ⚠️"
 
@@ -38,6 +39,7 @@ STATUS = {
     IDLE: "Ready — hold or double-tap Right Option",
     RECORDING: "Recording… release or double-tap to stop",
     TRANSCRIBING: "Transcribing…",
+    CLEANING: "Cleaning up…",
 }
 
 
