@@ -1,0 +1,20 @@
+[project]
+name = "yap"
+version = "0.1.0"
+description = "Local push-to-talk voice dictation (parakeet-mlx) for macOS"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.4.6",
+    "parakeet-mlx>=0.5.1",
+    "pynput>=1.8.2",
+    "sounddevice>=0.5.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
