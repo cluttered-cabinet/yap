@@ -23,19 +23,42 @@ uv run main.py
 ```
 
 First run downloads the model (~1.2 GB). A menu-bar icon shows the state:
-⏳ loading · 🎙️ ready · 🔴 recording · ✍️ transcribing. Then:
+⏳ loading · 🎙️ ready · 🔴 recording · ✍️ transcribing.
 
-1. **Double-tap Right Option (⌥)** to start recording (icon turns 🔴).
-2. Speak as long as you like.
-3. **Double-tap Right Option** again to stop — the text is transcribed (✍️) and
-   typed wherever your cursor is.
+Two ways to dictate with **Right Option (⌥)** — pick whichever fits the moment:
+
+- **Hold-to-talk:** hold ⌥, speak, release. Recording stops and the text is typed
+  at your cursor. Best for quick phrases.
+- **Double-tap toggle:** double-tap ⌥ to start hands-free recording, double-tap
+  again to stop. Best for long, hands-free dictation.
 
 Quit from the menu-bar dropdown.
+
+## Run in the background (no terminal)
+
+Build a menu-bar app wrapper and launch it without a terminal:
+
+```sh
+uv run scripts/build_app.py
+open yap.app
+```
+
+`yap.app` is a thin wrapper that runs this checkout's venv — it is not
+self-contained, so keep the project in place and re-run the build after moving it
+or recreating `.venv`. Logs go to `~/Library/Logs/yap.log`.
+
+**Autostart at login:** System Settings → General → Login Items → **+** → add
+`yap.app`.
+
+**Permissions:** the app has its own identity (separate from your terminal), so
+grant it Microphone, Input Monitoring, and Accessibility on first launch. If
+Accessibility is missing, the menu bar shows **⚠️** with a button to open the
+right settings pane — enable it, then relaunch.
 
 ## How it works
 
 ```
-double-tap ⌥  →  mic capture  →  log-mel  →  parakeet-mlx  →  keystrokes
+hold/2-tap ⌥  →  mic capture  →  log-mel  →  parakeet-mlx  →  keystrokes
 (listener      (sounddevice,     (in-RAM,    (on-device      (typed at cursor,
  thread)        16 kHz mono)      no temp     MLX/Metal,       clipboard never
                                   files)      engine thread)   touched)

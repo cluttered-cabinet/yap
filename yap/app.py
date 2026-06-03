@@ -1,24 +1,32 @@
-"""Dictation engine: double-tap toggle, transcription loop, and live state.
+"""Dictation engine: hold-to-talk + double-tap toggle, transcription, live state.
 
-Double-tap the toggle key (Right Option) to start recording; double-tap again to
-stop, transcribe, and type the result at the cursor. Speak as long as you like
-between taps.
+Two ways to dictate with the same key (Right Option):
+  - Hold-to-talk : press and hold; recording starts once the key has been held
+                   past HOLD_THRESHOLD (this is what separates a hold from a tap);
+                   release to stop, transcribe, and type.
+  - Double-tap   : two quick taps start hands-free recording; two more stop it.
 
-Threading model (three threads):
-  - listener thread  : pynput keyboard listener -> on_press/_toggle. Touches only
-                       the recorder, the queue, and `state`. Never MLX.
-  - engine thread    : run() creates the Transcriber and runs _consume(). ALL MLX
-                       work stays here -- MLX streams are thread-local, so the
-                       thread that builds the model must also use it.
-  - UI/main thread   : reads `state` to drive a menu-bar indicator (see menubar).
+A short press that is released before HOLD_THRESHOLD is a "tap" and feeds the
+double-tap detector. A tap never starts the microphone, so double-tapping doesn't
+thrash the input stream.
 
-`state` is a plain string written from the listener/engine threads and read from
-the UI thread; single attribute assignments are atomic enough for a status flag.
+Threading model (four threads):
+  - listener thread : pynput on_press/on_release. Touches recorder/queue/state.
+  - hold timer      : a threading.Timer per press; fires once to promote a held
+                      key into a recording. Guarded by the same lock as the
+                      listener so release-vs-timer races are serialized.
+  - engine thread   : run() builds the Transcriber and runs _consume(). ALL MLX
+                      work stays here -- MLX streams are thread-local.
+  - UI/main thread  : reads `state` to drive the menu-bar indicator.
+
+`state` is a plain string written from listener/timer/engine threads and read
+from the UI thread; single attribute assignments are atomic enough for a flag.
 """
 
 from __future__ import annotations
 
 import queue
+import threading
 import time
 
 import numpy as np
@@ -28,13 +36,16 @@ from .audio import Recorder
 from .inject import type_text
 from .stt import SAMPLE_RATE, Transcriber
 
-# Right Option: produces no character when tapped alone, so it's a safe toggle key.
+# Right Option: produces no character when tapped alone, so it's a safe key.
 DEFAULT_TOGGLE = keyboard.Key.alt_r
 
-# Two taps within this window count as a double-tap (seconds).
+# Held at least this long => hold-to-talk; released sooner => a tap. (seconds)
+HOLD_THRESHOLD = 0.2
+
+# Two taps within this window count as a double-tap. (seconds)
 DOUBLE_TAP_WINDOW = 0.4
 
-# Ignore recordings shorter than this (seconds).
+# Ignore recordings shorter than this. (seconds)
 MIN_DURATION = 0.3
 
 # Engine states (also the keys the UI maps to icons).
@@ -43,6 +54,10 @@ IDLE = "idle"
 RECORDING = "recording"
 TRANSCRIBING = "transcribing"
 
+# Active-recording modes.
+_HOLD = "hold"
+_TOGGLE = "toggle"
+
 
 class Engine:
     def __init__(self, toggle_key: keyboard.Key = DEFAULT_TOGGLE) -> None:
@@ -50,31 +65,77 @@ class Engine:
         self.recorder = Recorder(SAMPLE_RATE)
         self.transcriber: Transcriber | None = None  # built on the engine thread
         self.state = LOADING
-        self._recording = False
-        self._last_tap = float("-inf")  # monotonic ts of previous tap; -inf = none yet
+        self._mode: str | None = None  # None | _HOLD | _TOGGLE
+        self._down = False  # toggle key physically held right now
+        self._press_time = 0.0
+        self._last_tap = float("-inf")  # monotonic ts of previous tap; -inf = none
+        self._hold_timer: threading.Timer | None = None
+        self._lock = threading.Lock()
         self._q: queue.Queue[np.ndarray | None] = queue.Queue()
         self._listener: keyboard.Listener | None = None
 
-    # --- listener thread -------------------------------------------------
+    # --- listener / timer threads ---------------------------------------
 
     def on_press(self, key) -> None:  # noqa: ANN001
         if key != self.toggle:
             return
-        now = time.monotonic()
-        if now - self._last_tap <= DOUBLE_TAP_WINDOW:
-            self._last_tap = float("-inf")  # consume: a third quick tap won't retrigger
-            self._toggle()
-        else:
-            self._last_tap = now
+        with self._lock:
+            if self._down:  # ignore key-repeat
+                return
+            self._down = True
+            self._press_time = time.monotonic()
+            # Arm hold detection only when nothing is recording yet.
+            if self._mode is None:
+                self._hold_timer = threading.Timer(HOLD_THRESHOLD, self._hold_fired)
+                self._hold_timer.start()
 
-    def _toggle(self) -> None:
-        if not self._recording:
-            self._recording = True
-            self.recorder.start()
-            self.state = RECORDING
-            print("* recording (double-tap to stop)", flush=True)
+    def _hold_fired(self) -> None:
+        with self._lock:
+            if self._down and self._mode is None:
+                self._mode = _HOLD
+                self._start_recording()
+
+    def on_release(self, key) -> None:  # noqa: ANN001
+        if key != self.toggle:
             return
-        self._recording = False
+        with self._lock:
+            if not self._down:
+                return
+            self._down = False
+            now = time.monotonic()
+            held = now - self._press_time
+            if self._hold_timer is not None:
+                self._hold_timer.cancel()
+                self._hold_timer = None
+
+            if self._mode == _HOLD:  # push-to-talk end
+                self._mode = None
+                self._finish_recording()
+                return
+
+            if held > HOLD_THRESHOLD:
+                # A long press that didn't become a hold recording (e.g. while a
+                # toggle recording is already running) -- not a tap, ignore.
+                return
+
+            # A tap: feed the double-tap detector.
+            if now - self._last_tap <= DOUBLE_TAP_WINDOW:
+                self._last_tap = float("-inf")  # consume
+                if self._mode == _TOGGLE:  # double-tap stops hands-free recording
+                    self._mode = None
+                    self._finish_recording()
+                else:  # double-tap starts hands-free recording
+                    self._mode = _TOGGLE
+                    self._start_recording()
+            else:
+                self._last_tap = now
+
+    def _start_recording(self) -> None:
+        self.recorder.start()
+        self.state = RECORDING
+        print("* recording", flush=True)
+
+    def _finish_recording(self) -> None:
         samples = self.recorder.stop()
         dur = samples.size / SAMPLE_RATE
         if dur < MIN_DURATION:
@@ -85,7 +146,9 @@ class Engine:
         self._q.put(samples)
 
     def start_listener(self) -> None:
-        self._listener = keyboard.Listener(on_press=self.on_press)
+        self._listener = keyboard.Listener(
+            on_press=self.on_press, on_release=self.on_release
+        )
         self._listener.start()
 
     # --- engine thread ---------------------------------------------------
